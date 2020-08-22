@@ -10,6 +10,9 @@
 
 #include "breakpoint.h"
 
+
+
+
 #define offsetof(a ,b) __builtin_offsetof(a, b)
 #define get_reg(pid, name) __get_reg(pid, offsetof(struct user, regs.name))
 
@@ -45,10 +48,36 @@ long original_data = 0;
 
 
 
+int breakpoint_handler(pid_t pid, breakpoint *bp)
+{
+struct user_regs_struct regs;
+    if(ptrace(PTRACE_GETREGS, pid, NULL, &regs) == -1){
+        perror("ptrace getregs");
+        return 1;
+    }
+
+    if(ptrace(PTRACE_POKEDATA, pid, bp->exception_addr, bp->original_data) == -1){
+        perror("ptrace pokedata");
+        return 1;
+    }
+
+    regs.rip -= 1;
+
+    if(ptrace(PTRACE_SETREGS, pid, NULL, &regs) == -1){
+        perror("ptrace setregs");
+        return 1;
+    }
+    return 0;
+}
+
+
+
 
 int wait_for_bp(pid_t pid, breakpoints *bps)
 {
 int status;
+int continue_status = 0;
+breakpoint *current = NULL;
 
     while(1){
         ptrace(PTRACE_CONT, pid, NULL, NULL);
@@ -57,30 +86,20 @@ int status;
 
         if(WIFEXITED(status)){
             printf("exited\n");
-            return 1;
+            continue_status = 1;
         }
 
         else if(WIFSTOPPED(status)){
-            if(WSTOPSIG(status) == SIGTRAP && bp_is_ours(bps, (void *)get_reg(pid, rip)))
-                printf("our breakpoint\n");
-
-            return 0;
+            if(WSTOPSIG(status) == SIGTRAP && (current = get_bp_from_addr(bps, (void *)get_reg(pid, rip))) != NULL){
+                continue_status = breakpoint_handler(pid, current);
+            }
         }
 
         else{
             fprintf(stderr, "process stoped by sig = %d\n", WSTOPSIG(status));
-            return 0;
-
         }
-    }
-}
 
-
-
-void single_step(pid_t pid)
-{
-    if(ptrace(PTRACE_SINGLESTEP, pid, NULL, NULL) == -1){
-        perror("single step");
+        return continue_status;
     }
 }
 
@@ -94,7 +113,6 @@ int status;
 
     bps = (breakpoints *)malloc(sizeof(breakpoints));
     assert(bps != NULL);
-
 
 
     if(ptrace(PTRACE_ATTACH, pid, NULL, NULL) == -1){

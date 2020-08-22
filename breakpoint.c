@@ -121,20 +121,6 @@ breakpoint *current;
 
 
 
-
-int bp_is_ours(breakpoints *bps, void *addr)
-{
-    if(get_bp_from_addr(bps, addr) != NULL)
-        return 1;
-
-    else
-        return 0;
-}
-
-
-
-
-
 void bp_del(breakpoints *bps, breakpoint *bp)
 {
 

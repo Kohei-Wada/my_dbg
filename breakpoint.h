@@ -1,6 +1,7 @@
 
 typedef struct _breakpoint {
     void *exception_addr;
+    long original_data;
     struct _breakpoint *prev;
     struct _breakpoint *next;
 }breakpoint;
@@ -19,5 +20,4 @@ void display(breakpoints *bps);
 void add_bp_tail(breakpoints *bps, void *addr, long original_data);
 void add_bp_head(breakpoints *bps, void *addr, long original_data);
 void *get_bp_from_addr(breakpoints *bps, void *addr);
-int bp_is_ours(breakpoints *bps, void *addr);
 void bp_del(breakpoints *bps, breakpoint *bp);
