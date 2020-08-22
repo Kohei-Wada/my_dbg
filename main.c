@@ -12,11 +12,8 @@
 
 
 
-
 #define offsetof(a ,b) __builtin_offsetof(a, b)
 #define get_reg(pid, name) __get_reg(pid, offsetof(struct user, regs.name))
-
-
 
 
 long __get_reg(pid_t pid, int off)
