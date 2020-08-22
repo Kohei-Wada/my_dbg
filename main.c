@@ -48,7 +48,7 @@ long original_data = 0;
 
 
 
-int breakpoint_handler(pid_t pid, breakpoint *bp)
+int breakpoint_handler(pid_t pid, breakpoints *bps, breakpoint *bp)
 {
 struct user_regs_struct regs;
     if(ptrace(PTRACE_GETREGS, pid, NULL, &regs) == -1){
@@ -67,6 +67,9 @@ struct user_regs_struct regs;
         perror("ptrace setregs");
         return 1;
     }
+
+    bp_del(bps, bp);
+
     return 0;
 }
 
@@ -91,7 +94,7 @@ breakpoint *current = NULL;
 
         else if(WIFSTOPPED(status)){
             if(WSTOPSIG(status) == SIGTRAP && (current = get_bp_from_addr(bps, (void *)get_reg(pid, rip))) != NULL){
-                continue_status = breakpoint_handler(pid, current);
+                continue_status = breakpoint_handler(pid, bps, current);
             }
         }
 
